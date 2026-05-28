@@ -12,16 +12,27 @@ export interface User {
   timezone: string;
   reminderHour: number;
   reminderMinute: number;
+  reminderTime: string;
+  reminderTimeUTC: string;
   nextSendAt: Date;
   nextReminderAt: Date;
   streak: number;
   vineStage: string;
-  joinedAt: Date;
-  lastActiveDate: Date | null;
+  journeyStage: number;
+  journeyDayIndex: number;
+  joinedAt: any;
+  lastActiveDate: string | Date | null;
   declarationsToday: number;
   journaledToday: boolean;
   paused: boolean;
   awaitingJournal: boolean;
+  activeNeedTheme: string;
+  needPrayerIndex: number;
+  questActive: boolean;
+  questWeek: number;
+  questVideoIndex: number;
+  questChaptersLogged: number;
+  lastCheckinSent: string;
   lockedUntil: Date | null;
   lastSentAt: Date | null;
   reminderSentToday: boolean;
@@ -63,16 +74,27 @@ export const createUser = async (
     timezone,
     reminderHour,
     reminderMinute,
+    reminderTime: `${reminderHour.toString().padStart(2, '0')}:${reminderMinute.toString().padStart(2, '0')}`,
+    reminderTimeUTC: new Date(new Date().setUTCHours(reminderHour, reminderMinute, 0, 0)).toISOString(),
     nextSendAt: computeNextSendAt(timezone, reminderHour, reminderMinute),
     nextReminderAt: computeNextReminderAt(timezone),
     streak: 0,
     vineStage: 'Grafted',
+    journeyStage: 1,
+    journeyDayIndex: 1,
     joinedAt: new Date(),
-    lastActiveDate: null,
+    lastActiveDate: '',
     declarationsToday: 0,
     journaledToday: false,
     paused: false,
     awaitingJournal: false,
+    activeNeedTheme: '',
+    needPrayerIndex: 0,
+    questActive: false,
+    questWeek: 0,
+    questVideoIndex: 0,
+    questChaptersLogged: 0,
+    lastCheckinSent: '',
     lockedUntil: null,
     lastSentAt: null,
     reminderSentToday: false,

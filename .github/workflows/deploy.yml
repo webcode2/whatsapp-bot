@@ -27,10 +27,13 @@ jobs:
         run: yarn build
         working-directory: ./functions
 
-      - name: Deploy to Firebase
-        uses: w9jds/firebase-action@master
+      - id: 'auth'
+        uses: 'google-github-actions/auth@v2'
         with:
-          args: deploy --only functions
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-          PROJECT_ID: ask-whatsapp-bot-7721
+          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: 'Deploy to Google Cloud'
+        run: ./deploy.sh

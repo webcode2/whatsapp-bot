@@ -23,7 +23,7 @@ const getTwilioClient = () => {
 export const sendWhatsAppMessage = async (to: string, body: string): Promise<string> => {
   try {
     const accountSid = process.env.TWILIO_ACCOUNT_SID;
-    if (!accountSid) {
+    if (!accountSid || accountSid === 'your_account_sid' || accountSid === 'mock') {
       logger.info({ to, body }, '[MOCK TWILIO] Message sent');
       return `mock_sid_${Date.now()}`;
     }

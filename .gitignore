@@ -31,3 +31,4 @@ Thumbs.db
 *.tgz
 server.log
 functions/.env
+.text.txt

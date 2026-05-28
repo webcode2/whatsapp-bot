@@ -1,0 +1,23 @@
+# Never upload node_modules — GCP Cloud Build installs them fresh from package.json
+node_modules/
+functions/node_modules/
+**/node_modules/
+
+# Exclude all .env files — secrets come from GCP Secret Manager in production
+.env
+functions/.env
+**/.env
+**/*.env
+
+# Exclude development logs and test files
+server.log
+*.log
+**/*.test.ts
+
+# Exclude source TypeScript (only compiled lib/ is needed)
+functions/src/
+
+# Exclude local dev config
+.text.txt
+docker-compose.yml
+Dockerfile*

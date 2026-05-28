@@ -47,22 +47,19 @@ yarn test
 
 ## Deployment
 
-1. **Login to Firebase**:
+1. **Login to Google Cloud**:
 ```bash
-firebase login
+gcloud auth login
 ```
 
 2. **Set the active project**:
 ```bash
-firebase use your-project-id
+gcloud config set project whatapp-497611
 ```
 
-3. **Deploy the Firebase infrastructure (Functions, Indexes)**:
+3. **Deploy the GCP infrastructure (Pub/Sub, Scheduler, Cloud Functions)**:
 ```bash
-cd functions
-yarn build
-cd ..
-firebase deploy
+./deploy.sh
 ```
 
 ## Twilio Setup

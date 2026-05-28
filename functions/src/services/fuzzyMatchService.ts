@@ -2,8 +2,9 @@ import { distance } from 'fastest-levenshtein';
 import { normalizeInput } from '../utils/normalizeInput';
 
 export const VALID_KEYWORDS = [
-  'JOIN', 'PRAY', 'DEVOTE', 'DECLARE', 'JOURNAL',
-  'STREAK', 'REMIND', 'PAUSE', 'RESUME', 'HELP',
+  'ask', 'seek', 'knock', 'journal', 'vine', 
+  'need', 'remind', 'pause', 'resume', 'help', 
+  'quest', 'watch', 'log', 'quiz', 'progress'
 ];
 
 /**
@@ -11,7 +12,7 @@ export const VALID_KEYWORDS = [
  * Returns the matched keyword or null if no match found.
  */
 export const matchKeyword = (input: string): string | null => {
-  const normalized = normalizeInput(input).toUpperCase();
+  const normalized = normalizeInput(input);
 
   if (!normalized) return null;
 

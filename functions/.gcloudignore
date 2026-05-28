@@ -1,0 +1,21 @@
+# Never upload node_modules — GCP Cloud Build installs them fresh from package.json
+node_modules/
+**/node_modules/
+
+# Block ALL .env files — secrets come exclusively from GCP Secret Manager
+.env
+**/.env
+**/*.env
+
+# Block TypeScript source — only compiled lib/ JS is needed at runtime
+src/
+
+# Block test files
+**/*.test.ts
+**/*.spec.ts
+
+# Block dev-only config and logs
+*.log
+jest.config.ts
+.eslintrc*
+tsconfig*.json

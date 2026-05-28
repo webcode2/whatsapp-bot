@@ -1,4 +1,4 @@
-import { onSchedule } from 'firebase-functions/v2/scheduler';
+import * as functions from '@google-cloud/functions-framework';
 import { getFirestore } from 'firebase-admin/firestore';
 import { claimExecutionLease } from '../utils/executionLease';
 import { safePubSubPublish } from '../utils/pubsub';
@@ -8,7 +8,7 @@ const logger = pino();
 const MORNING_TOPIC = process.env.PUBSUB_TOPIC_MORNING_SEND || 'morning-send-topic';
 const REMINDER_TOPIC = process.env.PUBSUB_TOPIC_REMINDER_SEND || 'reminder-send-topic';
 
-export const processMorningDispatch = onSchedule('* * * * *', async (event) => {
+functions.cloudEvent('processMorningDispatch', async (cloudEvent: any) => {
   const db = getFirestore();
   const now = new Date();
 
@@ -26,7 +26,7 @@ export const processMorningDispatch = onSchedule('* * * * *', async (event) => {
   }
 });
 
-export const processReminderDispatch = onSchedule('* * * * *', async (event) => {
+functions.cloudEvent('processReminderDispatch', async (cloudEvent: any) => {
   const db = getFirestore();
   const now = new Date();
 
@@ -44,7 +44,7 @@ export const processReminderDispatch = onSchedule('* * * * *', async (event) => 
   }
 });
 
-export const reconcileStuckJobs = onSchedule('*/10 * * * *', async (event) => {
+functions.cloudEvent('reconcileStuckJobs', async (cloudEvent: any) => {
   const db = getFirestore();
   const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
 

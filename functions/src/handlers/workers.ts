@@ -1,4 +1,4 @@
-import { onMessagePublished } from 'firebase-functions/v2/pubsub';
+import * as functions from '@google-cloud/functions-framework';
 import { getFirestore } from 'firebase-admin/firestore';
 import { sendWhatsAppMessage } from '../services/twilioService';
 import { rescheduleAfterSend, rescheduleAfterReminder } from '../services/schedulingService';
@@ -7,11 +7,11 @@ import { getPrayerCardForDay } from '../services/prayerCardService';
 import pino from 'pino';
 
 const logger = pino();
-const MORNING_TOPIC = process.env.PUBSUB_TOPIC_MORNING_SEND || 'morning-send-topic';
-const REMINDER_TOPIC = process.env.PUBSUB_TOPIC_REMINDER_SEND || 'reminder-send-topic';
 
-export const processSendWorker = onMessagePublished(MORNING_TOPIC, async (event) => {
-  const data = event.data.message.json;
+functions.cloudEvent('processSendWorker', async (cloudEvent: any) => {
+  if (!cloudEvent.data || !cloudEvent.data.message || !cloudEvent.data.message.data) return;
+  const dataString = Buffer.from(cloudEvent.data.message.data, 'base64').toString('utf8');
+  const data = JSON.parse(dataString);
   const userId = data.userId;
   const db = getFirestore();
 
@@ -37,8 +37,10 @@ export const processSendWorker = onMessagePublished(MORNING_TOPIC, async (event)
   }
 });
 
-export const processReminderWorker = onMessagePublished(REMINDER_TOPIC, async (event) => {
-  const data = event.data.message.json;
+functions.cloudEvent('processReminderWorker', async (cloudEvent: any) => {
+  if (!cloudEvent.data || !cloudEvent.data.message || !cloudEvent.data.message.data) return;
+  const dataString = Buffer.from(cloudEvent.data.message.data, 'base64').toString('utf8');
+  const data = JSON.parse(dataString);
   const userId = data.userId;
   const db = getFirestore();
 
