@@ -1,4 +1,4 @@
-import { determineVineStage } from '../utils/vine';
+import { determineVineStage } from '../src/utils/vine';
 
 describe('Vine Stage Utility', () => {
   it('should return "Grafted" for streaks 0–6', () => {

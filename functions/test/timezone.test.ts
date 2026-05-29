@@ -1,4 +1,4 @@
-import { validateReminderTime, computeNextSendAt, computeNextReminderAt } from '../utils/timezone';
+import { validateReminderTime, computeNextSendAt, computeNextReminderAt } from '../src/utils/timezone';
 import { DateTime, Settings } from 'luxon';
 
 describe('Timezone Utility', () => {

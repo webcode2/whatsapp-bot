@@ -1,44 +1,14 @@
 import { getFirestore } from 'firebase-admin/firestore';
-import { parsePhoneNumber } from 'libphonenumber-js';
+import { parsePhoneNumberWithError } from 'libphonenumber-js';
 import { computeNextSendAt, computeNextReminderAt } from '../utils/timezone';
 import pino from 'pino';
 
+// Re-export User type so existing imports from userService still work
+export type { User } from '../types/schemas';
+import type { User } from '../types/schemas';
+
 const logger = pino();
 
-export interface User {
-  userId: string;
-  phone: string;
-  name: string;
-  timezone: string;
-  reminderHour: number;
-  reminderMinute: number;
-  reminderTime: string;
-  reminderTimeUTC: string;
-  nextSendAt: Date;
-  nextReminderAt: Date;
-  streak: number;
-  vineStage: string;
-  journeyStage: number;
-  journeyDayIndex: number;
-  joinedAt: any;
-  lastActiveDate: string | Date | null;
-  declarationsToday: number;
-  journaledToday: boolean;
-  paused: boolean;
-  awaitingJournal: boolean;
-  activeNeedTheme: string;
-  needPrayerIndex: number;
-  questActive: boolean;
-  questWeek: number;
-  questVideoIndex: number;
-  questChaptersLogged: number;
-  lastCheckinSent: string;
-  lockedUntil: Date | null;
-  lastSentAt: Date | null;
-  reminderSentToday: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
 
 /**
  * Creates a new user. Returns {exists: true} if the phone is already registered.
@@ -51,12 +21,28 @@ export const createUser = async (
 ): Promise<{ exists: boolean; user: Partial<User> }> => {
   const db = getFirestore();
 
-  // Derive timezone from country code — defaulting to UTC when unmappable
-  const parsed = parsePhoneNumber(phone);
-  const timezone = parsed?.country === 'NG' ? 'Africa/Lagos'
-    : parsed?.country === 'US' ? 'America/New_York'
-    : parsed?.country === 'IN' ? 'Asia/Kolkata'
-    : 'UTC';
+  // Derive timezone from country code — expanded mapping
+  const parsed = parsePhoneNumberWithError(phone);
+  const TIMEZONE_MAP: Record<string, string> = {
+    NG: 'Africa/Lagos',
+    GH: 'Africa/Accra',
+    KE: 'Africa/Nairobi',
+    ZA: 'Africa/Johannesburg',
+    ET: 'Africa/Addis_Ababa',
+    TZ: 'Africa/Dar_es_Salaam',
+    UG: 'Africa/Kampala',
+    US: 'America/New_York',
+    CA: 'America/Toronto',
+    BR: 'America/Sao_Paulo',
+    GB: 'Europe/London',
+    DE: 'Europe/Berlin',    
+    FR: 'Europe/Paris',
+    IN: 'Asia/Kolkata',
+    PK: 'Asia/Karachi',
+    BD: 'Asia/Dhaka',
+    AU: 'Australia/Sydney',
+  };
+  const timezone = (parsed?.country && TIMEZONE_MAP[parsed.country]) || 'UTC';
 
   const userId = phone.replace('+', '');
   const userRef = db.collection('users').doc(userId);
@@ -67,43 +53,54 @@ export const createUser = async (
     return { exists: true, user: doc.data() as User };
   }
 
+  const localTime = `${reminderHour.toString().padStart(2, '0')}:${reminderMinute.toString().padStart(2, '0')}`;
+  // Compute UTC equivalent of the reminder time (HH:MM bucket used for dispatcher equality query)
+  const reminderDate = new Date();
+  reminderDate.setHours(reminderHour, reminderMinute, 0, 0);
+  const utcHH = reminderDate.getUTCHours().toString().padStart(2, '0');
+  const utcMM = reminderDate.getUTCMinutes().toString().padStart(2, '0');
+  const reminderTimeUTC = `${utcHH}:${utcMM}`;
+
   const userData: User = {
-    userId,
     phone,
     name,
     timezone,
-    reminderHour,
-    reminderMinute,
-    reminderTime: `${reminderHour.toString().padStart(2, '0')}:${reminderMinute.toString().padStart(2, '0')}`,
-    reminderTimeUTC: new Date(new Date().setUTCHours(reminderHour, reminderMinute, 0, 0)).toISOString(),
+    reminderTime: localTime,
+    reminderTimeLocal: localTime,
+    reminderTimeUTC,
     nextSendAt: computeNextSendAt(timezone, reminderHour, reminderMinute),
     nextReminderAt: computeNextReminderAt(timezone),
+    lockedUntil: null,
     streak: 0,
     vineStage: 'Grafted',
     journeyStage: 1,
     journeyDayIndex: 1,
-    joinedAt: new Date(),
     lastActiveDate: '',
     declarationsToday: 0,
     journaledToday: false,
+    eveningReminderSentToday: false,
+    lastCheckinSent: '',
     paused: false,
     awaitingJournal: false,
+    awaitingNeedSelection: false,
+    awaitingOnboardingStep: null,
+    awaitingQuestConfirm: false,
+    awaitingQuizAnswer: false,
     activeNeedTheme: '',
     needPrayerIndex: 0,
     questActive: false,
-    questWeek: 0,
+    questWeek: 1,
     questVideoIndex: 0,
     questChaptersLogged: 0,
-    lastCheckinSent: '',
-    lockedUntil: null,
-    lastSentAt: null,
-    reminderSentToday: false,
+    currentQuizQuestionIndex: 0,
+    currentQuizScore: 0,
+    joinedAt: new Date(),
     createdAt: new Date(),
     updatedAt: new Date(),
   };
 
   await userRef.set(userData);
-  logger.info({ userId }, 'New user created');
+  logger.info({ phone }, 'New user created');
   return { exists: false, user: userData };
 };
 
@@ -124,4 +121,48 @@ export const setPauseState = async (phone: string, paused: boolean): Promise<voi
   const db = getFirestore();
   const userId = phone.replace('+', '');
   await db.collection('users').doc(userId).update({ paused, updatedAt: new Date() });
+};
+
+/**
+ * Sets the awaitingOnboardingStep field to track multi-step onboarding.
+ */
+export const setOnboardingStep = async (
+  phone: string,
+  step: 'name' | 'time' | null
+): Promise<void> => {
+  const db = getFirestore();
+  const userId = phone.replace('+', '');
+  await db.collection('users').doc(userId).set(
+    { awaitingOnboardingStep: step, updatedAt: new Date() },
+    { merge: true }
+  );
+};
+
+/**
+ * Creates a minimal "pending" user document at the start of onboarding (step 0).
+ * The document is completed in step 2 after name + time are collected.
+ */
+export const createPendingUser = async (phone: string): Promise<void> => {
+  const db = getFirestore();
+  const userId = phone.replace('+', '');
+  await db.collection('users').doc(userId).set({
+    userId,
+    phone,
+    awaitingOnboardingStep: 'name',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+  logger.info({ userId }, 'Pending user document created');
+};
+
+/**
+ * Merges arbitrary fields into an existing user document.
+ */
+export const updateUserFields = async (
+  phone: string,
+  fields: Partial<User>
+): Promise<void> => {
+  const db = getFirestore();
+  const userId = phone.replace('+', '');
+  await db.collection('users').doc(userId).update({ ...fields, updatedAt: new Date() });
 };

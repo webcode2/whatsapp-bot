@@ -4,23 +4,64 @@
       "collectionGroup": "users",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "paused", "order": "ASCENDING" },
-        { "fieldPath": "nextSendAt", "order": "ASCENDING" }
+        { "fieldPath": "paused",           "order": "ASCENDING" },
+        { "fieldPath": "reminderTimeUTC",  "order": "ASCENDING" }
       ]
     },
     {
       "collectionGroup": "users",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "paused", "order": "ASCENDING" },
+        { "fieldPath": "paused",          "order": "ASCENDING" },
+        { "fieldPath": "lastActiveDate",  "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "questActive",  "order": "ASCENDING" },
+        { "fieldPath": "questWeek",    "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "paused",       "order": "ASCENDING" },
+        { "fieldPath": "nextSendAt",   "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "paused",         "order": "ASCENDING" },
         { "fieldPath": "nextReminderAt", "order": "ASCENDING" }
       ]
     },
     {
-      "collectionGroup": "users",
+      "collectionGroup": "prayerCards",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "lockedUntil", "order": "ASCENDING" }
+        { "fieldPath": "journeyStage", "order": "ASCENDING" },
+        { "fieldPath": "dayIndex",     "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "deliveryLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "sentAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "deliveryLogs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "sentAt", "order": "ASCENDING" }
       ]
     }
   ],

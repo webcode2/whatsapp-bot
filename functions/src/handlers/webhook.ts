@@ -12,10 +12,11 @@ const logger = pino();
  */
 export const handleWebhookRequest = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { Body, From, ProfileName } = req.body as {
+    const { Body, From, ProfileName, ButtonPayload } = req.body as {
       Body?: string;
       From?: string;
       ProfileName?: string;
+      ButtonPayload?: string;  // present when user taps a Twilio quick-reply button
     };
 
     if (!From || !Body) {
@@ -55,11 +56,45 @@ export const handleWebhookRequest = async (req: Request, res: Response): Promise
     const user = await getUser(phone);
     const normalizedText = Body.toLowerCase().replace(/[^\\w\\s]|_/g, "").trim();
 
-    // 3. The Journal Interceptor
+    // ── Onboarding Interceptor ────────────────────────────────────────────────
+    // If the user is mid-onboarding, intercept their reply BEFORE keyword routing.
+    const { handleNameReply, handleTimeReply } = await import('./onboardingHandler');
+
+    if (user?.awaitingOnboardingStep === 'name') {
+      await handleNameReply(phone, Body);
+      res.status(200).json({ status: 'ok', action: 'onboarding_name' });
+      return;
+    }
+
+    if (user?.awaitingOnboardingStep === 'time') {
+      await handleTimeReply(phone, Body);
+      res.status(200).json({ status: 'ok', action: 'onboarding_time' });
+      return;
+    }
+
+    // ── Quest Confirmation Interceptor ─────────────────────────────────────────
+    // Catches "yes" / "not yet" replies after the QUEST welcome prompt.
+    if (user?.awaitingQuestConfirm) {
+      const { handleQuestConfirmReply } = await import('./questHandler');
+      await handleQuestConfirmReply(phone, Body, user);
+      res.status(200).json({ status: 'ok', action: 'quest_confirm' });
+      return;
+    }
+
+    // ── Quiz Answer Interceptor ──────────────────────────────────────────────
+    // Catches button taps (ButtonPayload) or typed A/B/C while a quiz is active.
+    if (user?.awaitingQuizAnswer) {
+      const { handleQuizAnswer } = await import('./quizHandler');
+      await handleQuizAnswer(phone, Body, ButtonPayload);
+      res.status(200).json({ status: 'ok', action: 'quiz_answer' });
+      return;
+    }
+
+    // ── Journal Interceptor ───────────────────────────────────────────────────
     if (user?.awaitingJournal) {
       if (normalizedText !== 'pause' && normalizedText !== 'resume') {
-        await saveJournalEntry(user.userId, Body);
-        await db.collection('users').doc(user.userId).update({ awaitingJournal: false });
+        await saveJournalEntry(phone, Body);
+        await db.collection('users').doc(phone).update({ awaitingJournal: false });
         await sendWhatsAppMessage(phone, 'Thank you for sharing your heart. Your journal has been saved.');
         res.status(200).json({ status: 'ok', action: 'journal_saved' });
         return;
@@ -71,13 +106,13 @@ export const handleWebhookRequest = async (req: Request, res: Response): Promise
         await stubs.handleOnboarding(phone, user);
         break;
       case 'seek':
-        await stubs.deliverDevotion(phone, user);
+        await (await import('./seekHandler')).deliverDevotion(phone, user);
         break;
       case 'knock':
         await stubs.deliverDeclaration(phone, user);
         break;
       case 'journal':
-        if (user) await setAwaitingJournal(user.userId);
+        await setAwaitingJournal(phone);
         await sendWhatsAppMessage(phone, 'What is on your heart today? Type your journal entry below...');
         break;
       case 'vine':
@@ -101,19 +136,19 @@ export const handleWebhookRequest = async (req: Request, res: Response): Promise
         await sendWhatsAppMessage(phone, 'Welcome to ASK 🙏\\n\\nKeywords: ASK, SEEK, KNOCK, JOURNAL, VINE, NEED, REMIND, PAUSE, RESUME, HELP, QUEST, WATCH, LOG, QUIZ, PROGRESS');
         break;
       case 'quest':
-        await stubs.handleQuestOnboarding(phone, user);
+        await (await import('./questHandler')).handleQuestOnboarding(phone, user);
         break;
       case 'watch':
         await stubs.deliverNextVideoEarly(phone, user);
         break;
       case 'log':
-        await stubs.logIndependentChapter(phone, Body);
+        await (await import('./logHandler')).handleLogChapter(phone, Body, user);
         break;
       case 'quiz':
-        await stubs.triggerWeeklyQuiz(phone, user);
+        await (await import('./quizHandler')).triggerWeeklyQuiz(phone, user);
         break;
       case 'progress':
-        await stubs.sendQuestProgress(phone, user);
+        await (await import('./progressHandler')).sendQuestProgress(phone, user);
         break;
       default:
         await stubs.handleFallback(phone);

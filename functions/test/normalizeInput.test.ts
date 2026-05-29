@@ -1,4 +1,4 @@
-import { normalizeInput } from '../utils/normalizeInput';
+import { normalizeInput } from '../src/utils/normalizeInput';
 
 describe('Normalize Input Utility', () => {
   it('should lowercase input', () => {

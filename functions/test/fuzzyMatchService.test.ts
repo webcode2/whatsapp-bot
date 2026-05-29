@@ -1,21 +1,21 @@
-import { VALID_KEYWORDS, matchKeyword } from '../services/fuzzyMatchService';
+import { VALID_KEYWORDS, matchKeyword } from '../src/services/fuzzyMatchService';
 
 describe('Fuzzy Match Service — Comprehensive', () => {
   // ─── Exact matches ──────────────────────────────────────────────────────────
 
   describe('exact keyword matching', () => {
-    it.each(VALID_KEYWORDS)('should match "%s" exactly (uppercase)', (keyword) => {
+    it.each(VALID_KEYWORDS)('should match "%s" exactly (lowercase)', (keyword) => {
       expect(matchKeyword(keyword)).toBe(keyword);
     });
 
-    it.each(VALID_KEYWORDS)('should match "%s" case-insensitively', (keyword) => {
-      expect(matchKeyword(keyword.toLowerCase())).toBe(keyword);
+    it.each(VALID_KEYWORDS)('should match "%s" case-insensitively (upper)', (keyword) => {
+      expect(matchKeyword(keyword.toUpperCase())).toBe(keyword);
     });
 
-    it('should match mixed-case input', () => {
-      expect(matchKeyword('JoIn')).toBe('JOIN');
-      expect(matchKeyword('dEcLaRe')).toBe('DECLARE');
-      expect(matchKeyword('pRaY')).toBe('PRAY');
+    it('should match mixed-case real keywords', () => {
+      expect(matchKeyword('AsK')).toBe('ask');
+      expect(matchKeyword('sEeK')).toBe('seek');
+      expect(matchKeyword('kNoCk')).toBe('knock');
     });
   });
 
@@ -23,20 +23,20 @@ describe('Fuzzy Match Service — Comprehensive', () => {
 
   describe('fuzzy matching (Levenshtein distance ≤ 2)', () => {
     it('should match single-character typos', () => {
-      expect(matchKeyword('JION')).toBe('JOIN');     // transposition
-      expect(matchKeyword('PARY')).toBe('PRAY');     // transposition
-      expect(matchKeyword('HALP')).toBe('HELP');     // single substitution
+      expect(matchKeyword('aask')).toBe('ask');      // insertion
+      expect(matchKeyword('halp')).toBe('help');     // substitution
+      expect(matchKeyword('qiuz')).toBe('quiz');     // transposition
     });
 
     it('should match two-character typos', () => {
-      expect(matchKeyword('DEKLAR')).toBe('DECLARE');
-      expect(matchKeyword('JOOIN')).toBe('JOIN');
+      expect(matchKeyword('proogress')).toBe('progress');  // two insertions
+      expect(matchKeyword('jouurnal')).toBe('journal');    // two insertions
     });
 
     it('should NOT match when distance > 2', () => {
-      expect(matchKeyword('JIOONN')).toBeNull();
-      expect(matchKeyword('DEKLRRRE')).toBeNull();
-      expect(matchKeyword('ABCDEF')).toBeNull();
+      expect(matchKeyword('jioonn')).toBeNull();
+      expect(matchKeyword('deklrrre')).toBeNull();
+      expect(matchKeyword('abcdef')).toBeNull();
     });
   });
 
@@ -45,21 +45,21 @@ describe('Fuzzy Match Service — Comprehensive', () => {
   describe('long input protection', () => {
     it('should NOT fuzzy match long sentences (journal entries)', () => {
       expect(
-        matchKeyword('I declare that God is good and I join with my family in prayer.')
+        matchKeyword('I declare that God is good and I seek Him every morning.')
       ).toBeNull();
     });
 
     it('should NOT match sentences > 15 characters', () => {
       expect(matchKeyword('please help me pray for strength')).toBeNull();
-      expect(matchKeyword('I want to join a church group')).toBeNull();
+      expect(matchKeyword('I want to ask God for wisdom today')).toBeNull();
     });
 
     it('should still exact-match if the cleaned input is exactly a keyword', () => {
-      // "JOIN" with punctuation, after stripping = "JOIN" (4 chars, exact match)
-      expect(matchKeyword('  JOIN  ')).toBe('JOIN');
-      expect(matchKeyword('!!!DECLARE!!!')).toBe('DECLARE');
+      expect(matchKeyword('  ask  ')).toBe('ask');
+      expect(matchKeyword('!!!seek!!!')).toBe('seek');
     });
   });
+
 
   // ─── Edge cases ─────────────────────────────────────────────────────────────
 

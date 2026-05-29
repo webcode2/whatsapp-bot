@@ -3,7 +3,6 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { sendWhatsAppMessage } from '../services/twilioService';
 import { rescheduleAfterSend, rescheduleAfterReminder } from '../services/schedulingService';
 import { releaseExecutionLease } from '../utils/executionLease';
-import { getPrayerCardForDay } from '../services/prayerCardService';
 import pino from 'pino';
 
 const logger = pino();
@@ -20,11 +19,12 @@ functions.cloudEvent('processSendWorker', async (cloudEvent: any) => {
     if (!userDoc.exists) return;
     const user = userDoc.data()!;
 
-    // Send the morning devotional (For demo, we'll send day 1 or streak + 1)
-    const card = await getPrayerCardForDay(user.streak + 1);
-    const msgBody = card 
-      ? `Morning! Here's your devotional:\n\n${card.verse} - ${card.reference}\n\n${card.devotionPassage}`
-      : "Good morning! It's time for your daily devotional.";
+    // Fetch card by journey stage + day index
+    const { getPrayerCard } = await import('../services/prayerCardService');
+    const card = await getPrayerCard(user.journeyStage ?? 1, user.journeyDayIndex ?? 1);
+    const msgBody = card
+      ? `🌅 Good morning, ${user.name}!\n\n_${card.verse}_\n— ${card.reference}\n\n${card.devotionText}`
+      : `Good morning! It's time for your daily devotional. Send *SEEK* to read today's word. 🙏`;
 
     await sendWhatsAppMessage(user.phone, msgBody);
 
