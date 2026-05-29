@@ -10,7 +10,7 @@ export const saveJournalEntry = async (userId: string, text: string): Promise<vo
   const db = getFirestore();
   const batch = db.batch();
 
-  const userRef = db.collection('users').doc(userId);
+  const userRef = db.collection('users').doc(userId.replace('+', ''));
   
   // Use YYYY-MM-DD as the document ID for the daily journal
   const today = new Date().toISOString().split('T')[0];
@@ -39,7 +39,7 @@ export const setAwaitingJournal = async (userId: string): Promise<void> => {
   const db = getFirestore();
   // Use set with { merge: true } instead of update to prevent NOT_FOUND errors
   // if the user document hasn't been created yet (especially common in local testing)
-  await db.collection('users').doc(userId).set({
+  await db.collection('users').doc(userId.replace('+', '')).set({
     awaitingJournal: true,
     updatedAt: new Date(),
   }, { merge: true });

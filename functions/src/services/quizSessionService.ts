@@ -29,7 +29,7 @@ export interface QuizSessionState {
 export const getQuizSession = async (phone: string): Promise<QuizSessionState | null> => {
   const db = getFirestore();
 
-  const userDoc = await db.collection('users').doc(phone).get();
+  const userDoc = await db.collection('users').doc(phone.replace('+', '')).get();
   if (!userDoc.exists) return null;
 
   const user = userDoc.data()!;
@@ -61,7 +61,7 @@ export const startQuizSession = async (
 ): Promise<QuizSessionState> => {
   const db = getFirestore();
 
-  await db.collection('users').doc(phone).update({
+  await db.collection('users').doc(phone.replace('+', '')).update({
     awaitingQuizAnswer: true,
     currentQuizQuestionIndex: 0,
     currentQuizScore: 0,
@@ -87,7 +87,7 @@ export const recordAnswer = async (
   isCorrect: boolean
 ): Promise<{ questionIndex: number; score: number }> => {
   const db = getFirestore();
-  const userRef = db.collection('users').doc(phone);
+  const userRef = db.collection('users').doc(phone.replace('+', ''));
 
   const doc = await userRef.get();
   const data = doc.data()!;
@@ -109,7 +109,7 @@ export const recordAnswer = async (
  */
 export const clearQuizSession = async (phone: string): Promise<void> => {
   const db = getFirestore();
-  await db.collection('users').doc(phone).update({
+  await db.collection('users').doc(phone.replace('+', '')).update({
     awaitingQuizAnswer: false,
     currentQuizQuestionIndex: 0,
     currentQuizScore: 0,

@@ -27,12 +27,12 @@ const isMock = () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Sends a plain WhatsApp message via Twilio.
+ * Sends a plain WhatsApp message via Twilio, with optional media URLs.
  */
-export const sendWhatsAppMessage = async (to: string, body: string): Promise<string> => {
+export const sendWhatsAppMessage = async (to: string, body: string, mediaUrl?: string[]): Promise<string> => {
   try {
     if (isMock()) {
-      logger.info({ to, body }, '[MOCK TWILIO] sendWhatsAppMessage');
+      logger.info({ to, body, mediaUrl }, '[MOCK TWILIO] sendWhatsAppMessage');
       return `mock_sid_${Date.now()}`;
     }
 
@@ -40,8 +40,13 @@ export const sendWhatsAppMessage = async (to: string, body: string): Promise<str
     const from      = `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`;
     const toAddress = `whatsapp:${to}`;
 
-    const message = await client.messages.create({ body, from, to: toAddress });
-    logger.info({ messageSid: message.sid, to }, 'Twilio message sent');
+    const messageParams: any = { body, from, to: toAddress };
+    if (mediaUrl && mediaUrl.length > 0) {
+      messageParams.mediaUrl = mediaUrl;
+    }
+
+    const message = await client.messages.create(messageParams);
+    logger.info({ messageSid: message.sid, to, hasMedia: !!mediaUrl }, 'Twilio message sent');
     return message.sid;
   } catch (error) {
     logger.error({ error, to }, 'Failed to send Twilio message');

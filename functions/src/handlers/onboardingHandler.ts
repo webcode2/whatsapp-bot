@@ -8,7 +8,7 @@ import {
 } from '../services/userService';
 import { parseTime } from '../utils/timeParser';
 import { parsePhoneNumber } from 'libphonenumber-js';
-import { computeNextSendAt, computeNextReminderAt } from '../utils/timezone';
+import { computeNextSendAt, computeNextReminderAt, computeUserScheduleFields } from '../utils/timezone';
 import pino from 'pino';
 
 const logger = pino();
@@ -97,47 +97,14 @@ export const handleTimeReply = async (phone: string, rawText: string): Promise<v
     return; // Stay on 'time' step — don't advance
   }
 
-  // Derive timezone from phone country code
-  const phoneParsed = parsePhoneNumber(phone);
-  const TIMEZONE_MAP: Record<string, string> = {
-    NG: 'Africa/Lagos',
-    GH: 'Africa/Accra',
-    KE: 'Africa/Nairobi',
-    ZA: 'Africa/Johannesburg',
-    ET: 'Africa/Addis_Ababa',
-    TZ: 'Africa/Dar_es_Salaam',
-    UG: 'Africa/Kampala',
-    US: 'America/New_York',
-    CA: 'America/Toronto',
-    BR: 'America/Sao_Paulo',
-    GB: 'Europe/London',
-    DE: 'Europe/Berlin',
-    FR: 'Europe/Paris',
-    IN: 'Asia/Kolkata',
-    PK: 'Asia/Karachi',
-    BD: 'Asia/Dhaka',
-    AU: 'Australia/Sydney',
-  };
-  const timezone = (phoneParsed?.country && TIMEZONE_MAP[phoneParsed.country]) || 'UTC';
-
-  const localTime = parsed.display;
-  const reminderTimeUTC = new Date(
-    new Date().setUTCHours(parsed.hour, parsed.minute, 0, 0)
-  ).toISOString();
+  const scheduleFields = computeUserScheduleFields(phone, parsed.hour, parsed.minute, parsed.display);
 
   // Finalise the user document via createUser (idempotent — merges over pending doc)
   await createUser(phone, '', parsed.hour, parsed.minute);
 
   // Override with actual values from onboarding (name was stored in step 1)
   await updateUserFields(phone, {
-    reminderTime: localTime,
-    reminderTimeLocal: localTime,
-    reminderTimeUTC,
-    timezone,
-    reminderHour: parsed.hour,
-    reminderMinute: parsed.minute,
-    nextSendAt: computeNextSendAt(timezone, parsed.hour, parsed.minute),
-    nextReminderAt: computeNextReminderAt(timezone),
+    ...scheduleFields,
     journeyStage: 1,
     vineStage: 'Grafted',
     streak: 0,
@@ -145,9 +112,9 @@ export const handleTimeReply = async (phone: string, rawText: string): Promise<v
     awaitingOnboardingStep: null,
   } as Partial<User>);
 
-  logger.info({ phone, timezone, localTime }, 'Onboarding complete — user finalised');
+  logger.info({ phone, timezone: scheduleFields.timezone, localTime: scheduleFields.reminderTimeLocal }, 'Onboarding complete — scheduling finalised');
 
-  // ── Journey Welcome — Message 1 (+ image) ───────────────────────────────
+  // ── Send Journey Stage 1 (Believe) Welcome ──────────────────────────────────
   await sendWhatsAppMessage(
     phone,
     `Everyday, I will be here. No matter what the day holds, I will show up if you show up.\n\nHere is what to expect. Our first ASK devotion is a journey through nine seasons of fellowship with God, each one taking you deeper into a closer walk with God and a stronger prayer walk.\n\nWe start at *Believe* and journey to *Reign*.\n\n_"He that cometh to God must know that He Is, and that He is a rewarder of those who diligently seek Him."_`
@@ -164,6 +131,6 @@ export const handleTimeReply = async (phone: string, rawText: string): Promise<v
   // ── Journey Welcome — Message 2 ─────────────────────────────────────────
   await sendWhatsAppMessage(
     phone,
-    `We begin at Season 1 *Believe*.\n\nHowever, if your heart has a specific prayer need at any time — healing, provision, a waiting season — simply type *NEED* at any time and I will bring you targeted prayers alongside your journey.\n\nYou are *Grafted* on Day 1. Your first morning card arrives tomorrow at ${localTime}. When it does, please read it slowly. Then type *SEEK* when you are ready to go deeper. Type *KNOCK* to make your declaration. Together we will Ask, Seek and Knock every day.\n\nI will see you tomorrow morning. 🙏\n\n_SEEK — get today's word now_\n_NEED — browse prayer themes_\n_HELP — see all I can do_`
+    `We begin at Season 1 *Believe*.\n\nHowever, if your heart has a specific prayer need at any time — healing, provision, a waiting season — simply type *NEED* at any time and I will bring you targeted prayers alongside your journey.\n\nYou are *Grafted* on Day 1. Your first morning card arrives tomorrow at ${scheduleFields.reminderTimeLocal}. When it does, please read it slowly. Then type *SEEK* when you are ready to go deeper. Type *KNOCK* to make your declaration. Together we will Ask, Seek and Knock every day.\n\nI will see you tomorrow morning. 🙏\n\n_SEEK — get today's word now_\n_NEED — browse prayer themes_\n_HELP — see all I can do_`
   );
 };

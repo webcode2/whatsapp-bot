@@ -28,6 +28,43 @@ functions.cloudEvent('processSendWorker', async (cloudEvent: any) => {
 
     await sendWhatsAppMessage(user.phone, msgBody);
 
+    // ── Quest Scheduled Delivery ──────────────────────────────────────────────
+    if (user.questActive) {
+      const { DateTime } = await import('luxon');
+      const localNow = DateTime.now().setZone(user.timezone || 'UTC');
+      const weekday = localNow.weekday; // 1=Mon, 3=Wed, 5=Fri
+
+      let targetVideoIndex = -1;
+      if (weekday === 1) targetVideoIndex = 0;
+      else if (weekday === 3) targetVideoIndex = 1;
+      else if (weekday === 5) targetVideoIndex = 2;
+
+      if (targetVideoIndex !== -1) {
+        const currentVideoIndex = user.questVideoIndex || 0;
+        // Guard: only send if they haven't watched this video yet via early WATCH
+        if (currentVideoIndex <= targetVideoIndex) {
+          const contentDoc = await db.collection('questContent').doc(String(user.questWeek || 1)).get();
+          if (contentDoc.exists) {
+            const content = contentDoc.data() as any;
+            const videoUrl = content.videoLinks?.[targetVideoIndex];
+            if (videoUrl) {
+              const bookTitle = content.books || content.weekTitle;
+              const qMsg = `📺 *Your Quest Video: Week ${user.questWeek} — ${bookTitle}*\n\nHere is your scheduled reading video for today.`;
+              await sendWhatsAppMessage(user.phone, qMsg, [videoUrl]);
+              
+              await db.collection('users').doc(userId).update({
+                questVideoIndex: targetVideoIndex + 1,
+                updatedAt: new Date()
+              });
+              logger.info({ userId, week: user.questWeek, videoIndex: targetVideoIndex }, 'Scheduled Quest video delivered');
+            }
+          }
+        } else {
+          logger.info({ userId, targetVideoIndex, currentVideoIndex }, 'Skipped Quest video delivery (already watched via WATCH)');
+        }
+      }
+    }
+
     // Reschedule
     await rescheduleAfterSend(userId, user.timezone, user.reminderHour, user.reminderMinute);
 
@@ -50,7 +87,22 @@ functions.cloudEvent('processReminderWorker', async (cloudEvent: any) => {
     const user = userDoc.data()!;
 
     if (user.declarationsToday === 0) {
-      await sendWhatsAppMessage(user.phone, "Hey! You haven't made your declaration today. Reply DECLARE to continue your streak!");
+      const { DateTime } = await import('luxon');
+      const nowLocal = DateTime.now().setZone(user.timezone || 'UTC');
+      const lastActive = user.lastActiveDate ? DateTime.fromISO(user.lastActiveDate, { zone: user.timezone }) : null;
+      const lastCheckin = user.lastCheckinSent ? DateTime.fromISO(user.lastCheckinSent, { zone: user.timezone }) : null;
+
+      const daysSinceActive = lastActive ? Math.floor(nowLocal.diff(lastActive, 'days').days) : 0;
+      const daysSinceCheckin = lastCheckin ? Math.floor(nowLocal.diff(lastCheckin, 'days').days) : Infinity;
+
+      if (daysSinceActive >= 14 && daysSinceCheckin >= 14) {
+        // Re-engagement for inactive users
+        await sendWhatsAppMessage(user.phone, "We haven't heard from you in a while! Would you like to explore targeted prayer themes today? Type *NEED*.");
+        await db.collection('users').doc(userId).update({ lastCheckinSent: nowLocal.toFormat('yyyy-MM-dd') });
+      } else {
+        // Normal daily reminder
+        await sendWhatsAppMessage(user.phone, "Hey! You haven't made your declaration today. Reply *KNOCK* to continue your streak!");
+      }
     }
 
     // Reschedule

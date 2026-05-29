@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import { matchKeyword } from '../services/fuzzyMatchService';
+import { normalizeInput } from '../utils/normalizeInput';
 import pino from 'pino';
 
 const logger = pino();
@@ -54,7 +55,23 @@ export const handleWebhookRequest = async (req: Request, res: Response): Promise
     const db = (await import('firebase-admin/firestore')).getFirestore();
 
     const user = await getUser(phone);
-    const normalizedText = Body.toLowerCase().replace(/[^\\w\\s]|_/g, "").trim();
+    const normalizedText = normalizeInput(Body);
+
+    // ── Global Reset Command ──────────────────────────────────────────────────
+    if (normalizedText === 'reset') {
+      await db.collection('users').doc(phone.replace('+', '')).update({
+        awaitingOnboardingStep: null,
+        awaitingNeedSelection: false,
+        awaitingJournal: false,
+        awaitingQuestConfirm: false,
+        awaitingQuizAnswer: false,
+        awaitingDeclarationYes: false,
+        awaitingReminderTime: false,
+      });
+      await sendWhatsAppMessage(phone, 'All pending actions have been reset. You are back to the main menu. Reply HELP to see your options.');
+      res.status(200).json({ status: 'ok', action: 'reset' });
+      return;
+    }
 
     // ── Onboarding Interceptor ────────────────────────────────────────────────
     // If the user is mid-onboarding, intercept their reply BEFORE keyword routing.
@@ -90,13 +107,39 @@ export const handleWebhookRequest = async (req: Request, res: Response): Promise
       return;
     }
 
+    // ── Declaration YES Interceptor ──────────────────────────────────────────
+    if (user?.awaitingDeclarationYes && normalizedText.startsWith('yes')) {
+      const { handleYesDeclaration } = await import('./yesHandler');
+      await handleYesDeclaration(phone, normalizedText, user);
+      res.status(200).json({ status: 'ok', action: 'declaration_yes' });
+      return;
+    }
+
+    // ── Reminder Time Interceptor ────────────────────────────────────────────
+    if (user?.awaitingReminderTime) {
+      const { handleReminderTimeUpdate } = await import('./remindHandler');
+      await handleReminderTimeUpdate(phone, Body, user);
+      res.status(200).json({ status: 'ok', action: 'reminder_time_update' });
+      return;
+    }
+
     // ── Journal Interceptor ───────────────────────────────────────────────────
     if (user?.awaitingJournal) {
       if (normalizedText !== 'pause' && normalizedText !== 'resume') {
         await saveJournalEntry(phone, Body);
-        await db.collection('users').doc(phone).update({ awaitingJournal: false });
+        await db.collection('users').doc(phone.replace('+', '')).update({ awaitingJournal: false });
         await sendWhatsAppMessage(phone, 'Thank you for sharing your heart. Your journal has been saved.');
         res.status(200).json({ status: 'ok', action: 'journal_saved' });
+        return;
+      }
+    }
+
+    // ── NEED Selection Interceptor ────────────────────────────────────────────
+    if (user?.awaitingNeedSelection) {
+      if (normalizedText !== 'pause' && normalizedText !== 'resume') {
+        const { handleNeedSelection } = await import('./needHandler');
+        await handleNeedSelection(phone, Body, user);
+        res.status(200).json({ status: 'ok', action: 'need_selection' });
         return;
       }
     }
@@ -109,20 +152,20 @@ export const handleWebhookRequest = async (req: Request, res: Response): Promise
         await (await import('./seekHandler')).deliverDevotion(phone, user);
         break;
       case 'knock':
-        await stubs.deliverDeclaration(phone, user);
+        await (await import('./knockHandler')).handleKnock(phone, user);
         break;
       case 'journal':
         await setAwaitingJournal(phone);
         await sendWhatsAppMessage(phone, 'What is on your heart today? Type your journal entry below...');
         break;
       case 'vine':
-        await stubs.sendVineStatus(phone, user);
+        await (await import('./vineHandler')).sendVineStatus(phone, user);
         break;
       case 'need':
-        await stubs.triggerNeedSelection(phone);
+        await (await import('./needHandler')).triggerNeedSelection(phone, user);
         break;
       case 'remind':
-        await stubs.updateReminderTime(phone);
+        await (await import('./remindHandler')).triggerReminderTimeUpdate(phone);
         break;
       case 'pause':
         if (user) await setPauseState(phone, true);
@@ -133,13 +176,13 @@ export const handleWebhookRequest = async (req: Request, res: Response): Promise
         await sendWhatsAppMessage(phone, 'Welcome back! Daily messages will resume. 🙌');
         break;
       case 'help':
-        await sendWhatsAppMessage(phone, 'Welcome to ASK 🙏\\n\\nKeywords: ASK, SEEK, KNOCK, JOURNAL, VINE, NEED, REMIND, PAUSE, RESUME, HELP, QUEST, WATCH, LOG, QUIZ, PROGRESS');
+        await sendWhatsAppMessage(phone, '📖 *ASK Menu*\n\n*ASK*: Get your morning card\n*SEEK*: Deepen the daily word\n*KNOCK*: Declare the word\n*JOURNAL*: Write your reflections\n*VINE*: Check your streak\n*NEED*: Targeted prayers by theme\n*QUEST*: Start your Bible journey\n*WATCH*: Early Quest video\n*LOG*: Log independent chapters\n*QUIZ*: Weekly Quest quiz\n*PROGRESS*: View Quest stats\n*REMIND*: Update your reminder time\n*PAUSE* / *RESUME*: Control daily messages');
         break;
       case 'quest':
         await (await import('./questHandler')).handleQuestOnboarding(phone, user);
         break;
       case 'watch':
-        await stubs.deliverNextVideoEarly(phone, user);
+        await (await import('./watchHandler')).deliverNextVideoEarly(phone, user);
         break;
       case 'log':
         await (await import('./logHandler')).handleLogChapter(phone, Body, user);

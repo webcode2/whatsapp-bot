@@ -86,6 +86,8 @@ export const createUser = async (
     awaitingOnboardingStep: null,
     awaitingQuestConfirm: false,
     awaitingQuizAnswer: false,
+    awaitingDeclarationYes: false,
+    awaitingReminderTime: false,
     activeNeedTheme: '',
     needPrayerIndex: 0,
     questActive: false,

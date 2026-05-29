@@ -102,6 +102,14 @@ export const deliverDevotion = async (
         { phone, themeId: activeThemeId, prayerIndex: user.needPrayerIndex },
         'NEED prayer appended to SEEK'
       );
+
+      // Increment index so the next SEEK gets the next prayer
+      const { advanceNeedSession } = await import('../services/needSessionService');
+      await advanceNeedSession(phone);
+    } else {
+      // If no card is returned, the theme is exhausted. Clear it silently.
+      const { clearNeedSession } = await import('../services/needSessionService');
+      await clearNeedSession(phone);
     }
   }
 

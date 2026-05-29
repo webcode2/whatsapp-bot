@@ -48,6 +48,8 @@ export interface User {
   awaitingOnboardingStep: 'name' | 'time' | null;
   awaitingQuestConfirm: boolean;
   awaitingQuizAnswer: boolean;
+  awaitingDeclarationYes: boolean;
+  awaitingReminderTime: boolean;
 
   // ── NEED Prayer State ──────────────────────────────────────────────────────
   // Inline (no separate userNeedSessions collection).

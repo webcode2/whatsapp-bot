@@ -13,7 +13,7 @@ const logger = pino();
 
 export const getQuestProgress = async (phone: string) => {
   const db = getFirestore();
-  const doc = await db.collection('users').doc(phone).get();
+  const doc = await db.collection('users').doc(phone.replace('+', '')).get();
   if (!doc.exists) return null;
   const data = doc.data()!;
   return {
@@ -26,7 +26,7 @@ export const getQuestProgress = async (phone: string) => {
 
 export const startQuest = async (phone: string): Promise<void> => {
   const db = getFirestore();
-  await db.collection('users').doc(phone).update({
+  await db.collection('users').doc(phone.replace('+', '')).update({
     questActive: true,
     questWeek: 1,
     questVideoIndex: 0,
@@ -39,7 +39,7 @@ export const startQuest = async (phone: string): Promise<void> => {
 
 export const advanceQuestVideo = async (phone: string): Promise<void> => {
   const db = getFirestore();
-  await db.collection('users').doc(phone).update({
+  await db.collection('users').doc(phone.replace('+', '')).update({
     questVideoIndex: FieldValue.increment(1),
     updatedAt: new Date(),
   });
@@ -47,7 +47,7 @@ export const advanceQuestVideo = async (phone: string): Promise<void> => {
 
 export const advanceQuestWeek = async (phone: string): Promise<void> => {
   const db = getFirestore();
-  await db.collection('users').doc(phone).update({
+  await db.collection('users').doc(phone.replace('+', '')).update({
     questWeek: FieldValue.increment(1),
     questVideoIndex: 0,
     updatedAt: new Date(),
@@ -58,7 +58,7 @@ export const advanceQuestWeek = async (phone: string): Promise<void> => {
 export const logIndependentChapter = async (phone: string, chapterName: string): Promise<{ totalChapters: number }> => {
   const db = getFirestore();
   const today = new Date().toISOString().split('T')[0];
-  const userRef = db.collection('users').doc(phone);
+  const userRef = db.collection('users').doc(phone.replace('+', ''));
   const logRef = userRef.collection('questLog').doc(today);
 
   const batch = db.batch();

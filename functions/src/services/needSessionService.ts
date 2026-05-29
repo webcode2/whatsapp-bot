@@ -13,7 +13,7 @@ const logger = pino();
  */
 export const getActiveNeedTheme = async (phone: string): Promise<string | null> => {
   const db = getFirestore();
-  const doc = await db.collection('users').doc(phone).get();
+  const doc = await db.collection('users').doc(phone.replace('+', '')).get();
   if (!doc.exists) return null;
   const theme = doc.data()!.activeNeedTheme as string;
   return theme && theme !== '' ? theme : null;
@@ -24,7 +24,7 @@ export const getActiveNeedTheme = async (phone: string): Promise<string | null> 
  */
 export const startNeedSession = async (phone: string, themeId: string): Promise<void> => {
   const db = getFirestore();
-  await db.collection('users').doc(phone).update({
+  await db.collection('users').doc(phone.replace('+', '')).update({
     activeNeedTheme: themeId,
     needPrayerIndex: 0,
     awaitingNeedSelection: false,
@@ -38,7 +38,7 @@ export const startNeedSession = async (phone: string, themeId: string): Promise<
  */
 export const advanceNeedSession = async (phone: string): Promise<void> => {
   const db = getFirestore();
-  await db.collection('users').doc(phone).update({
+  await db.collection('users').doc(phone.replace('+', '')).update({
     needPrayerIndex: FieldValue.increment(1),
     updatedAt: new Date(),
   });
@@ -49,7 +49,7 @@ export const advanceNeedSession = async (phone: string): Promise<void> => {
  */
 export const clearNeedSession = async (phone: string): Promise<void> => {
   const db = getFirestore();
-  await db.collection('users').doc(phone).update({
+  await db.collection('users').doc(phone.replace('+', '')).update({
     activeNeedTheme: '',
     needPrayerIndex: 0,
     updatedAt: new Date(),

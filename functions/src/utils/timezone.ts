@@ -30,3 +30,51 @@ export const computeNextSendAt = (timezone: string, hour: number, minute: number
 export const computeNextReminderAt = (timezone: string): Date => {
   return computeNextSendAt(timezone, 20, 0);
 };
+
+import { parsePhoneNumber } from 'libphonenumber-js';
+
+export const TIMEZONE_MAP: Record<string, string> = {
+  NG: 'Africa/Lagos',
+  GH: 'Africa/Accra',
+  KE: 'Africa/Nairobi',
+  ZA: 'Africa/Johannesburg',
+  ET: 'Africa/Addis_Ababa',
+  TZ: 'Africa/Dar_es_Salaam',
+  UG: 'Africa/Kampala',
+  US: 'America/New_York',
+  CA: 'America/Toronto',
+  BR: 'America/Sao_Paulo',
+  GB: 'Europe/London',
+  DE: 'Europe/Berlin',
+  FR: 'Europe/Paris',
+  IN: 'Asia/Kolkata',
+  PK: 'Asia/Karachi',
+  BD: 'Asia/Dhaka',
+  AU: 'Australia/Sydney',
+};
+
+export const computeUserScheduleFields = (
+  phone: string,
+  hour: number,
+  minute: number,
+  displayTime: string,
+  existingTimezone?: string
+) => {
+  const phoneParsed = parsePhoneNumber(phone);
+  const timezone = existingTimezone || (phoneParsed?.country && TIMEZONE_MAP[phoneParsed.country]) || 'UTC';
+  
+  const reminderTimeUTC = new Date(
+    new Date().setUTCHours(hour, minute, 0, 0)
+  ).toISOString();
+
+  return {
+    reminderTime: displayTime,
+    reminderTimeLocal: displayTime,
+    reminderTimeUTC,
+    timezone,
+    reminderHour: hour,
+    reminderMinute: minute,
+    nextSendAt: computeNextSendAt(timezone, hour, minute),
+    nextReminderAt: computeNextReminderAt(timezone),
+  };
+};

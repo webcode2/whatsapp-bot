@@ -62,14 +62,9 @@ const seekDevotions: PrayerCard[] = [
 // ─── DATA: NEED (PrayerThemes & ThemePrayers) ────────────────────────────────
 
 const needThemes: { theme: PrayerTheme; prayers: ThemePrayer[] }[] = [
+  // ── Life and Faith ──
   {
-    theme: {
-      themeId: 'healing',
-      displayName: 'Physical & Emotional Healing',
-      category: 'Health',
-      number: 1,
-      available: true,
-    },
+    theme: { themeId: 'healing', displayName: 'Healing — physical, emotional, mental', category: 'Life and Faith', number: 1, available: true },
     prayers: [
       {
         index: 0,
@@ -88,13 +83,30 @@ const needThemes: { theme: PrayerTheme; prayers: ThemePrayer[] }[] = [
     ],
   },
   {
-    theme: {
-      themeId: 'finance',
-      displayName: 'Financial Breakthrough',
-      category: 'Finance',
-      number: 2,
-      available: true,
-    },
+    theme: { themeId: 'warfare', displayName: 'Warfare — breaking cycles, freedom from bondage', category: 'Life and Faith', number: 2, available: true },
+    prayers: [
+      {
+        index: 0,
+        verse: 'For our struggle is not against flesh and blood, but against the rulers, against the authorities... (Ephesians 6:12)',
+        prayerText: 'Lord, I put on the full armor of God. I declare freedom from every cycle and bondage in my bloodline. Your blood speaks a better word over my life.',
+        declarationText: 'I am completely free in Christ. No weapon formed against me shall prosper.',
+        declarationAudioUrl: 'https://audio.example.com/war1.mp3',
+      }
+    ],
+  },
+  { theme: { themeId: 'salvation', displayName: 'Salvation', category: 'Life and Faith', number: 3, available: false }, prayers: [] },
+  { theme: { themeId: 'spiritual_hunger', displayName: 'Spiritual Hunger', category: 'Life and Faith', number: 4, available: false }, prayers: [] },
+
+  // ── Identity and Relationships ──
+  { theme: { themeId: 'marriage_family', displayName: 'Marriage and Family', category: 'Identity and Relationships', number: 5, available: false }, prayers: [] },
+  { theme: { themeId: 'believing_spouse', displayName: 'Believing for a Spouse', category: 'Identity and Relationships', number: 6, available: false }, prayers: [] },
+  { theme: { themeId: 'family_restoration', displayName: 'Family Restoration', category: 'Identity and Relationships', number: 7, available: false }, prayers: [] },
+  { theme: { themeId: 'friendships', displayName: 'Friendships', category: 'Identity and Relationships', number: 8, available: false }, prayers: [] },
+
+  // ── Purpose and Work ──
+  { theme: { themeId: 'career_work', displayName: 'Career and Work', category: 'Purpose and Work', number: 9, available: false }, prayers: [] },
+  {
+    theme: { themeId: 'finance', displayName: 'Finances — provision, debt, breakthrough', category: 'Purpose and Work', number: 10, available: true },
     prayers: [
       {
         index: 0,
@@ -105,14 +117,13 @@ const needThemes: { theme: PrayerTheme; prayers: ThemePrayer[] }[] = [
       }
     ],
   },
+  { theme: { themeId: 'purpose_calling', displayName: 'Purpose and Calling', category: 'Purpose and Work', number: 11, available: false }, prayers: [] },
+  { theme: { themeId: 'education', displayName: 'Education', category: 'Purpose and Work', number: 12, available: false }, prayers: [] },
+
+  // ── Seasons and Struggles ──
+  { theme: { themeId: 'grief_loss', displayName: 'Grief and Loss', category: 'Seasons and Struggles', number: 13, available: false }, prayers: [] },
   {
-    theme: {
-      themeId: 'peace',
-      displayName: 'Anxiety & Peace',
-      category: 'Mental Health',
-      number: 3,
-      available: true,
-    },
+    theme: { themeId: 'anxiety_fear', displayName: 'Anxiety and Fear', category: 'Seasons and Struggles', number: 14, available: true },
     prayers: [
       {
         index: 0,
@@ -122,7 +133,26 @@ const needThemes: { theme: PrayerTheme; prayers: ThemePrayer[] }[] = [
         declarationAudioUrl: 'https://audio.example.com/peace1.mp3',
       }
     ],
-  }
+  },
+  {
+    theme: { themeId: 'waiting_seasons', displayName: 'Waiting Seasons — breaking delay', category: 'Seasons and Struggles', number: 15, available: true },
+    prayers: [
+      {
+        index: 0,
+        verse: 'Wait for the LORD; be strong and take heart and wait for the LORD. (Psalm 27:14)',
+        prayerText: 'Lord, give me strength in this waiting room. Let patience have its perfect work in me, and let me not lose hope while You prepare my blessing.',
+        declarationText: 'God’s timing is perfect. I am stepping into my season of manifestation.',
+        declarationAudioUrl: 'https://audio.example.com/wait1.mp3',
+      }
+    ],
+  },
+  { theme: { themeId: 'persecution', displayName: 'Persecution', category: 'Seasons and Struggles', number: 16, available: false }, prayers: [] },
+
+  // ── Intercession ──
+  { theme: { themeId: 'nations_leaders', displayName: 'Nations and Leaders', category: 'Intercession', number: 17, available: false }, prayers: [] },
+  { theme: { themeId: 'revival', displayName: 'Revival', category: 'Intercession', number: 18, available: false }, prayers: [] },
+  { theme: { themeId: 'protection', displayName: 'Protection', category: 'Intercession', number: 19, available: false }, prayers: [] },
+  { theme: { themeId: 'pregnancy_children', displayName: 'Pregnancy and Children', category: 'Intercession', number: 20, available: false }, prayers: [] },
 ];
 
 

@@ -10,4 +10,5 @@ export interface PrayerTheme {
   category: string;       // grouping e.g. "Health", "Finance", "Relationships"
   number: number;         // sort order in the selection menu
   available: boolean;     // false = hidden from menu (upcoming/maintenance)
+  imageUrl?: string;      // optional image link to display when exploring this theme
 }

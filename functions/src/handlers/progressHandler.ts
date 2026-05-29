@@ -39,7 +39,7 @@ export const sendQuestProgress = async (phone: string, user: Partial<User> | nul
   // 2. Fetch quiz scores from questLog
   let quizScoresText = '';
   try {
-    const logsSnap = await db.collection('users').doc(phone).collection('questLog').get();
+    const logsSnap = await db.collection('users').doc(phone.replace('+', '')).collection('questLog').get();
     const scores: { week: number; score: number; total: number }[] = [];
 
     logsSnap.forEach(doc => {
